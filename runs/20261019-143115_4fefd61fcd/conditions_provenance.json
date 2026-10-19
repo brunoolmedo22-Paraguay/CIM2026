@@ -1,0 +1,9 @@
+{
+  "g_poa_Wm2": "medido (POA)",
+  "thermal_strategy": "A_tmod_medida",
+  "delta_t_C": 3.0,
+  "t_module_C": "medido (temperatura posterior)",
+  "t_cell_C": "estimado: Sandia eq. 23, ΔT=3 °C (hipótese, não medido)",
+  "t_amb_C": "medido",
+  "wind_ms": "medido"
+}

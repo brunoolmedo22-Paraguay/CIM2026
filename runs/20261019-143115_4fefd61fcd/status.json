@@ -1,0 +1,14 @@
+{
+ "estado": "concluido",
+ "etapa": "metadados",
+ "etapa_idx": 10,
+ "n_etapas": 10,
+ "pid": 420,
+ "inicio_utc": "2026-10-19T14:31:16Z",
+ "mensagem": "experimento concluído",
+ "benchmark": {
+  "evt": "done",
+  "registros": 176
+ },
+ "atualizado_utc": "2026-10-19T14:36:11Z"
+}

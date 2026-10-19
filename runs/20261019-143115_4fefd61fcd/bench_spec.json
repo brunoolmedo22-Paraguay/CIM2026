@@ -1,0 +1,97 @@
+{
+  "params": {
+    "M1": {
+      "model_id": "M1",
+      "p_stc_W": 285.68591743441357,
+      "gamma_per_C": null,
+      "huld_k": null,
+      "huld_set": null,
+      "sdm": null,
+      "source": {
+        "module_id": "SUPSI_MONO_SI_REFERENCE",
+        "module_source": "SUPSI IEC61853-1&2 workbook; raw laboratory data; see README | SUPSI_module_experimental.json",
+        "p_stc_meaning": "Pmp medida em STC (laboratório SUPSI, IEC 61853-1)"
+      }
+    },
+    "M2": {
+      "model_id": "M2",
+      "p_stc_W": 285.68591743441357,
+      "gamma_per_C": -0.004050000000000001,
+      "huld_k": null,
+      "huld_set": null,
+      "sdm": null,
+      "source": {
+        "module_id": "SUPSI_MONO_SI_REFERENCE",
+        "module_source": "SUPSI IEC61853-1&2 workbook; raw laboratory data; see README | SUPSI_module_experimental.json",
+        "p_stc_meaning": "Pmp medida em STC (laboratório SUPSI, IEC 61853-1)",
+        "gamma": "γ = -0.405 %/°C ÷ 100"
+      }
+    },
+    "M3": {
+      "model_id": "M3",
+      "p_stc_W": 285.68591743441357,
+      "gamma_per_C": null,
+      "huld_k": [
+        -0.017237,
+        -0.040465,
+        -0.004702,
+        0.000149,
+        0.00017,
+        5e-06
+      ],
+      "huld_set": "PVGIS_cSi_current",
+      "sdm": null,
+      "source": {
+        "module_id": "SUPSI_MONO_SI_REFERENCE",
+        "module_source": "SUPSI IEC61853-1&2 workbook; raw laboratory data; see README | SUPSI_module_experimental.json",
+        "p_stc_meaning": "Pmp medida em STC (laboratório SUPSI, IEC 61853-1)",
+        "huld": "JRC PVGIS — data sources and calculation methods; família c-Si CURRENT (https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis/general-information/data-sources-calculation-methods_en)"
+      }
+    },
+    "M4": {
+      "model_id": "M4",
+      "p_stc_W": null,
+      "gamma_per_C": null,
+      "huld_k": null,
+      "huld_set": null,
+      "sdm": {
+        "IL_ref": 9.488932494253902,
+        "I0_ref": 3.0509298926787875e-11,
+        "Rs": 0.37137862889380513,
+        "Rsh_ref": 408.67755031219406,
+        "a_ref": 1.4945755578571953,
+        "alpha_isc_A_per_C": 0.00436395031686984,
+        "eg_ref_eV": 1.121,
+        "degdt_per_K": -0.0002677,
+        "n": null,
+        "n_cells": null,
+        "method": "multiponto_SUPSI_lab",
+        "provenance": {
+          "module_id": "SUPSI_MONO_SI_REFERENCE",
+          "inputs": "66 medições IEC 61853-1 (22 G–T × Pmp, Isc, Voc)",
+          "algorithm": "least_squares TRF, multiarranque",
+          "best_start": 2,
+          "cost": 0.0011329533273656892,
+          "converged": true
+        }
+      },
+      "source": {
+        "module_id": "SUPSI_MONO_SI_REFERENCE",
+        "module_source": "SUPSI IEC61853-1&2 workbook; raw laboratory data; see README | SUPSI_module_experimental.json",
+        "p_stc_meaning": "Pmp medida em STC (laboratório SUPSI, IEC 61853-1)",
+        "sdm_method": "multiponto_SUPSI_lab"
+      }
+    }
+  },
+  "repetitions": 11,
+  "order_mode": "rotativa",
+  "seed": 20261019,
+  "execution_mode": "vetorizado",
+  "warmup_samples": 500,
+  "scaling_sizes": [
+    250,
+    1000,
+    4000
+  ],
+  "tracemalloc_pass": true
+}
