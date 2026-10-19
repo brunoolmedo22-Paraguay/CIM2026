@@ -1,0 +1,5 @@
+modelo,batch_size,tracemalloc_pico_MiB,tracemalloc_atual_MiB,tempo_com_tracemalloc_s,nota
+M1,15457,0.23671722412109375,0.000732421875,0.00022674,passe separado; só alocações Python; tempo NÃO comparável ao benchmark
+M2,15457,0.47275543212890625,0.000732421875,0.000376148,passe separado; só alocações Python; tempo NÃO comparável ao benchmark
+M3,15457,0.8428277969360352,0.0007476806640625,0.00062651,passe separado; só alocações Python; tempo NÃO comparável ao benchmark
+M4,15457,0.8142833709716797,0.13062667846679688,36.956809766,passe separado; só alocações Python; tempo NÃO comparável ao benchmark

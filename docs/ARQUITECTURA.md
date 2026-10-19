@@ -1,4 +1,34 @@
-# Arquitectura
+# Arquitectura (v1.1)
+
+## Capas
+
+```
+navegador ──HTTP/JSON──▶ web/server.py ──▶ cim26 (motor)          ──▶ runs/<run_id>/ (archivos)
+ web/static (HTML/CSS/JS, Plotly.js local)     │  experimento ──proceso aparte──▶ worker del benchmark
+```
+
+- **Interfaz (`web/static`).** SPA sin framework ni paso de compilación, organizada en módulos ES:
+  - `main.js`: enrutador y monitor de ejecución;
+  - `ui.js`: API, formato pt-BR, panel lateral, contadores y tema Plotly;
+  - `modelos.js`: Simulador;
+  - `artigo.js`: Dados, Protocolo, Resultados e Histórico.
+
+  No contiene física.
+- **Servidor (`web/server.py`).** Usa `ThreadingHTTPServer` de la biblioteca estándar y escucha solo en 127.0.0.1. Expone una API JSON fina sobre el motor y sirve `plotly.min.js` desde el paquete Python `plotly`, sin CDN.
+- **Discusión (`cim26/report/narrative.py`).** Reglas deterministas sobre los CSV de la ejecución:
+  - la redacción de cada comparación depende de la diferencia **pareada** de nRMSE (IC95 por bloques de días) y de un umbral práctico declarado de 0,5 p.p.;
+  - las hipótesis causales se rotulan como tales.
+
+  Genera `narrative.json` y `DISCUSSAO.md` y se puede regenerar con `cli analyze`.
+- **Anomalías (`cim26/data/anomalies.py`).** A01–A09 (error o sospechoso) y T01 (condición de transitorio). Solo usan variables medidas.
+
+  La exclusión depende de la política del protocolo, y `quality_sensitivity.csv` cuantifica siempre su efecto y su parcela del error cuadrático.
+
+## Métricas porcentuales
+
+Las métricas principales son nRMSE, nMAE y nMBE como % de la potencia media observada en la intersección común, junto con el error de energía en %. Se reporta además nRMSE/Pstc.
+
+El bootstrap por días entrega un IC95 para cada métrica en % y las diferencias pareadas en puntos porcentuales.
 
 ## Contratos
 

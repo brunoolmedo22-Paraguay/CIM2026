@@ -1,78 +1,107 @@
-# Verificación — Fase 4
+# Verificación — v1.1
 
 ## Pruebas automatizadas
 
-`python -m pytest -q` da **44 pruebas aprobadas**. `python tools/verificar_paquete.py` responde OK, y las 3 pruebas
-originales del paquete (`tests/test_formulas_reference.py`) también pasan.
+- `python -m pytest -q`: **54 pruebas aprobadas**.
+- `python tools/verificar_paquete.py`: OK.
+- Pruebas originales del paquete (`tests/test_formulas_reference.py`): aprobadas.
 
-| Criterio de aceptación (`docs/06`) | Prueba |
+| Área | Pruebas |
 |---|---|
-| Lectura de 6 CSV con timestamps dd.mm.yyyy, originales sin cambios, Gpoa ≠ GHI | `test_six_csv_timestamps_and_poa_vs_ghi`, `test_raw_inputs_unchanged` (SHA256 = manifiesto), `test_ghi_is_never_renamed_poa` |
-| Matriz 22 Pmp + 22 Isc + 22 Voc, STC = ficha, 32 no se trata como dato | `test_lab_matrix_and_sentinel` (además, el derivado regenerado es byte a byte idéntico) |
-| M1/M2/M3 dan Pstc en STC y 0 con G=0 (Huld sin log inválido); M2 decrece con T | `test_stc_gives_pstc`, `test_zero_irradiance_no_log_warning`, `test_m2_hand_calculation_and_decreasing`, `test_huld_hand_and_reference_impl` |
-| M4 clásico con Canadian Solar y STC; M4 SUPSI sin Ns/Vmp/Imp con supuestos e identificabilidad | `test_canadian_catalog_all_models_with_classical_sdm`, `test_multipoint_without_ns_vmp_imp`, `test_classical_refuses_incomplete_datasheet` |
-| Código portado = legado (16 módulos, MPP, M1, M2≡NOCT+eficiencia, SDM de arreglo) | `test_regression_legacy.py` (rtol 1e-9 a 1e-14) |
-| Modelos y Artigo dan predicción idéntica | `test_modelos_and_artigo_identical` (igualdad bit a bit) |
-| R=11 × 4 = 44 registros, nunca simultáneos, orden cambia por ronda, mismas muestras, determinismo | `test_worker_11x4_sequential_isolated`, `test_round_order_rotation_and_random` |
-| Errores recalculables desde `predictions.csv`; ZIP reabre sin reejecutar | `test_metrics_recomputed_from_predictions`, `test_zip_roundtrip_without_rerun` (llamar a `predict` provoca fallo) |
-| Ninguna fila borrada; cobertura visible | `test_quality_keeps_all_rows_and_common_pairs`, `test_run_artifacts` |
-| Calibración, lectura y render separados del costo | `test_run_artifacts` (`metadata.json → tempos_por_etapa_s`) |
-| La app arranca sin red y usa solo el paquete | `test_app_smoke.py` (AppTest de ambos modos, botón SDM y las 3 áreas de Artigo) |
+| Fórmulas M1–M4, térmica y datos (6 CSV, matriz 22×3, sentinela, GHI≠POA, originales intactos) | `test_models.py`, `test_thermal_and_data.py` |
+| El código portado coincide con el legado en los 16 módulos | `test_regression_legacy.py` |
+| Calibración clásica y multipunto | `test_calibration.py` |
+| 11×4 secuencial, sin solapamiento, rotación y determinismo; recálculo desde archivos; ZIP sin reejecución; modos idénticos | `test_experiment.py` |
+| Anomalías físicas (reglas sintéticas y conteos SUPSI); clasificación de evidencia; discusión generada desde archivos | `test_anomalies_narrative.py` |
+| API web: activos offline, simulación, GHI rechazado, medida solo con módulo SUPSI, SDM→I–V, calidad, ejecución, serie y ZIP | `test_web.py` |
 
-## Ejecución de verificación `20261019-143115_4fefd61fcd` — DIAGNÓSTICO DE INGENIERÍA
+La interfaz se recorrió además con Chromium sin errores de consola: Simulador con estimación SDM e I–V en arreglo 3×1, Dados, Protocolo y las cuatro pestañas de Resultados.
+
+## Ejecución de verificación `20261019-171936_02d45e13e8` — DIAGNÓSTICO DE INGENIERÍA
 
 **Configuración**
 
-- Datos: 6 meses, 18 705 filas leídas, de las cuales 15 457 son elegibles (Gpoa ≥ 100 W/m²).
-- Integración: 14 921 pares válidos, que cubren 1 243,4 h.
+- Datos: 6 meses, N = 15457 muestras en la máscara común, 14921 pares válidos que cubren 1243,4 h.
+- Calidad: anomalías solo señaladas (política por defecto).
 - Térmica: estrategia A con ΔT = 3 °C (hipótesis).
-- Benchmark: 11 rondas rotativas, semilla 20261019, modo vectorizado.
+- Benchmark: 11 rondas rotativas, semilla 20261019.
 
 **Entorno**
 
-- CPU: Intel(R) Xeon(R) Processor @ 2.80GHz, 1 núcleo(s) lógico(s).
+- CPU: Intel(R) Xeon(R) Processor @ 2.10GHz, 1 núcleo(s) lógico(s).
 - Memoria: método `linux_vmhwm_reset`.
-- Hilos BLAS: 1.
-- Python 3.12.3, NumPy 2.4.4, SciPy 1.17.1.
 
-**Registros del benchmark**
+**Calibración SDM:** 6,7 s, contabilizados fuera del benchmark.
 
-- 176 registros: 44 del lote principal y 132 de escalado (250, 1000 y 4000 muestras).
-- 0 fallos y 0 no convergencias.
-- Predicciones idénticas entre las 11 rondas, con una diferencia máxima frente a la referencia de 0 W.
+### Exactitud y costo
 
-**Tiempos por etapa**, fuera del costo del modelo: calibración 10.6 s, lectura 0.50 s, preparación 0.005 s, figuras 5.1 s.
+Los porcentajes son relativos a la potencia media observada, 164,2 W.
 
-| Modelo | RMSE [W] (IC95, bloques por día) | MAE [W] | MBE [W] | Error de energía [%] (IC95) | Mediana [µs/muestra] | CV tiempo [%] | Pico ΔRSS [MiB] | No dominado (error×tiempo) |
-|---|---|---|---|---|---|---|---|---|
-| M1 | 24.52 [22.97; 26.25] | 16.63 | +11.03 | +6.74 [+5.96; +7.45] | 0.01256 | 9.6 | 0.000 | sí |
-| M2 | 18.81 [16.81; 20.95] | 9.12 | -0.97 | -0.66 [-0.91; -0.43] | 0.02148 | 5.1 | 0.000 | sí |
-| M3 | 18.95 [16.98; 21.11] | 9.26 | -2.01 | -1.27 [-1.53; -1.02] | 0.03876 | 10.3 | 0.004 | no (M2) |
-| M4 | 18.77 [16.80; 20.91] | 9.12 | +0.10 | -0.00 [-0.26; +0.25] | 709.5 | 3.9 | 2.844 | sí |
+| Modelo | nRMSE % (IC95 por días) | nMAE % | nMBE % | Error de energía % (IC95) | RMSE W | µs/muestra | No dominado (error×tiempo) |
+|---|---|---|---|---|---|---|---|
+| M1 | 14,93 [13,79; 16,09] | 10,13 | +6,72 | +6,74 [+5,96; +7,45] | 24,5 | 0.0102 | sí |
+| M2 | 11,45 [10,13; 12,78] | 5,56 | -0,59 | -0,66 [-0,91; -0,43] | 18,8 | 0.01769 | sí |
+| M3 | 11,54 [10,19; 12,89] | 5,64 | -1,23 | -1,27 [-1,53; -1,02] | 19,0 | 0.02712 | no (M2) |
+| M4 | 11,43 [10,11; 12,76] | 5,55 | +0,06 | -0,00 [-0,26; +0,25] | 18,8 | 663 | sí |
 
-Diferencias pareadas de RMSE (bootstrap por días, B = 2000):
+### Diferencias pareadas de nRMSE
 
-| Comparación | ΔRMSE [W] | IC95 |
+Bootstrap por días con B = 2000. Las diferencias se expresan en puntos porcentuales (p.p.).
+
+| Comparación | Δ p.p. | IC95 |
 |---|---|---|
-| M2 − M1 | -5.714 | [-6.753; -4.740] |
-| M3 − M1 | -5.569 | [-6.634; -4.592] |
-| M4 − M1 | -5.754 | [-6.785; -4.803] |
-| M3 − M2 | +0.145 | [+0.097; +0.190] |
-| M4 − M2 | -0.040 | [-0.071; -0.010] |
-| M4 − M3 | -0.185 | [-0.239; -0.129] |
+| M2 − M1 | -3,480 | [-4,095; -2,898] |
+| M3 − M1 | -3,392 | [-4,007; -2,799] |
+| M4 − M1 | -3,505 | [-4,116; -2,934] |
+| M3 − M2 | +0,088 | [+0,057; +0,119] |
+| M4 − M2 | -0,024 | [-0,043; -0,006] |
+| M4 − M3 | -0,113 | [-0,150; -0,076] |
+
+### Anomalías físicas de medición
+
+Criterios fijados de antemano, usando solo variables medidas.
+
+| Código | Anomalía | Severidad | En todo el conjunto | En la máscara |
+|---|---|---|---|---|
+| A01 | potência sem irradiância | erro | 0 | 0 (0,00 %) |
+| A02 | irradiância sem potência | erro | 0 | 0 (0,00 %) |
+| A03 | potência acima do fisicamente plausível | erro | 374 | 374 (2,42 %) |
+| A04 | potência muito abaixo do esperado | suspeito | 155 | 155 (1,00 %) |
+| A05 | Isc incoerente com Gpoa | suspeito | 1328 | 1328 (8,59 %) |
+| A06 | Voc implausível | erro | 12 | 0 (0,00 %) |
+| A07 | Tbom incoerente com Tamb | suspeito | 0 | 0 (0,00 %) |
+| A08 | salto de temperatura do módulo | suspeito | 2 | 2 (0,01 %) |
+| A09 | valor congelado | suspeito | 0 | 0 (0,00 %) |
+| T01 | transitório rápido de irradiância | condicao | 673 | 658 (4,26 %) |
+
+La verificación «potencia sin irradiancia» (A01) y su inversa (A02) existen y dan **0 casos** en SUPSI 2019. Las inconsistencias reales del dataset son otras:
+
+- **Isc incoherente con Gpoa** (A05);
+- **potencia por encima de lo plausible** (A03), típica de bordes de nube y de desincronización entre el barrido I–V y el piranómetro;
+- **transitorios rápidos de G** (T01).
+
+### Sensibilidad a la calidad de los datos
+
+La columna de parcela da la fracción del error cuadrático total que explican las muestras de cada escenario.
+
+| Escenario | % muestras | M1 | M2 | M3 | M4 | Parcela del error cuadrático |
+|---|---|---|---|---|---|---|
+| todas as amostras elegíveis (máscara principal) | 100,0 % | 14,93 | 11,45 | 11,54 | 11,43 | 100–100 % |
+| sem anomalias físicas do tipo «erro» | 97,6 % | 13,86 | 9,58 | 9,59 | 9,64 | 67–84 % |
+| sem anomalias «erro» nem «suspeito» | 91,3 % | 10,74 | 4,89 | 4,94 | 4,82 | 17–50 % |
+| somente condições estáveis (sem transitório rápido de G) | 95,7 % | 13,54 | 9,46 | 9,52 | 9,44 | 65–78 % |
+| somente transitórios rápidos de G | 4,3 % | 32,17 | 31,36 | 31,67 | 31,26 | 22–35 % |
+| somente amostras com anomalia «erro» ou «suspeito» | 8,7 % | 51,36 | 50,56 | 50,93 | 50,59 | 50–83 % |
 
 **Lectura técnica, no conclusiva**
 
-- **M1 frente al resto.** M1 sobrestima (MBE ≈ +11 W) y su sesgo crece con G y con la temperatura del módulo. M2, M3 y M4 quedan en un RMSE parecido, entre 18,8 y 19,0 W, con intervalos individuales solapados.
-- **Diferencias pareadas.** Las pareadas entre M2, M3 y M4 son pequeñas, de décimas de W, pero sus intervalos no incluyen 0 en varios casos. Los IC no pareados son mucho más anchos que esas diferencias, así que el criterio de «dominancia robusta» (IC sin solapamiento) es conservador y no se cumple en ningún caso.
-- **Energía.** M4 obtiene el menor error de energía en esta muestra.
-- **Costo.** El SDM cuesta del orden de 10⁴ veces más por muestra que M1 y M2.
-- **Error común.** Existe un componente común de error de ≈ 18 W en todos los modelos. Hipótesis a investigar: desfase entre el barrido I–V y la irradiancia en nubosidad variable, y efectos ópticos o espectrales no modelados.
+- **Exactitud.** M2, M3 y M4 forman un grupo de exactitud práctica equivalente; las diferencias pareadas son menores de 0,5 p.p. M1 queda claramente detrás, con un sesgo positivo que crece con la temperatura del módulo.
+- **Costo.** El SDM cuesta del orden de 10⁴–10⁵ veces más por muestra que M1/M2. Este factor varió entre corridas (≈ 56 500× en la v1.0 y ≈ 65 000× aquí) porque el tiempo de M1 está en microsegundos y es ruidoso.
+- **Calidad de datos.** Menos del 9 % de las muestras, con anomalías físicas de medición, concentra la mitad o más del error cuadrático. Sin ellas, el nRMSE de M2–M4 baja de ≈ 11,4 % a ≈ 4,8 %. El error dominante, por tanto, es común a todos los modelos y no se debe a su formulación.
 
-Nada de lo anterior es una conclusión publicable sin revisión científica.
+## Límites y pendientes
 
-## Pendiente / fuera de alcance de esta versión
-
-- La transposición GHI→POA para planos inclinados no está implementada; se bloquea con explicación.
-- No hay coeficientes Huld verificados para CdTe/CIGS en el paquete; M3 queda deshabilitado con su motivo.
-- En Windows y macOS no se observa el pico de RSS dentro de la llamada; se registra RSS antes y después y se declara el método.
+- No hay transposición GHI→POA para planos inclinados; la interfaz la bloquea con una explicación.
+- No hay coeficientes Huld verificados para CdTe/CIGS.
+- Fuera de Linux no se observa el pico de RSS dentro de la llamada.
+- La discusión automática se genera por reglas; los umbrales (0,5 p.p., criterios de anomalía) son convenciones declaradas y requieren revisión científica antes de publicar.

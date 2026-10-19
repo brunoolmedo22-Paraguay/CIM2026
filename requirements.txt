@@ -1,10 +1,10 @@
 # CIM26 — dependências (Python 3.11+). Versões exatas verificadas: requirements-lock.txt
+# A interface é HTML/CSS/JS servida pela biblioteca padrão; Plotly.js vem do pacote plotly.
 numpy>=1.26,<3
 scipy>=1.11,<2
 pandas>=2.1,<4
 matplotlib>=3.8,<4
 plotly>=5.20,<8
-streamlit>=1.50,<2
 openpyxl>=3.1,<4
 psutil>=5.9,<8
 pytest>=8,<10
