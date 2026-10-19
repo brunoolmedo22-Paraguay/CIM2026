@@ -30,3 +30,13 @@ def supsi_cal(lab, supsi_module):
 def field():
     from cim26.data.supsi_field import load_field
     return load_field()
+
+
+@pytest.fixture(scope="session")
+def small_run(tmp_path_factory):
+    from cim26.experiment.config import ExperimentConfig
+    from cim26.experiment.runner import run_experiment
+    cfg = ExperimentConfig(months=("2019_02",), repetitions=3, scaling_sizes=(200,), bootstrap_B=300,
+                           sensitivity_delta_t=(0.0, 3.0), calibration={**ExperimentConfig().calibration, "n_starts": 2},
+                           tracemalloc_pass=False, label="teste")
+    return run_experiment(cfg, tmp_path_factory.mktemp("runs"), use_lock=True)

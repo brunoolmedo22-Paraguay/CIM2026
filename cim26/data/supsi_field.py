@@ -85,6 +85,7 @@ REASONS = {
     "R07": "Gpoa abaixo do limiar de irradiância",
     "R08": "Gpoa acima do limite plausível",
     "R09": "Tamb ou vento ausentes/implausíveis (exigidos pela estratégia térmica B)",
+    "R10": "anomalia física excluída pela política do experimento (ver anom_codes)",
 }
 FLAGS = {
     "F01": "Voc medido fora de [0,5; 1,2]×Voc_STC (informativo; não exclui)",

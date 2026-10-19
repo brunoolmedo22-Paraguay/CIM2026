@@ -24,6 +24,7 @@ import pandas as pd
 from .. import __version__
 from ..calibration.multipoint import MultipointConfig, calibrate_multipoint
 from ..calibration.store import _jsonable
+from ..data.anomalies import AnomalyConfig, detect_anomalies
 from ..data.supsi_field import QualityConfig, assess_quality, interval_report, load_field, monthly_summary
 from ..data.supsi_lab import check_lab, load_supsi_module_json, read_iec61853_xlsx, sha256_file, supsi_module_spec
 from ..paths import PROJECT_ROOT, RUNS_DIR, SUPSI_MODULE_JSON
@@ -76,6 +77,19 @@ def _conditions(cfg: ExperimentConfig, d: pd.DataFrame, module, delta_t: float):
                             delta_t_C=delta_t)
 
 
+def quality_with_anomalies(field: pd.DataFrame, qcfg: QualityConfig, module, cfg: ExperimentConfig) -> pd.DataFrame:
+    """Máscara comum + anomalias físicas; a política do experimento decide se anomalias excluem (R10)."""
+    q = assess_quality(field, qcfg)
+    an = detect_anomalies(q, module.p_stc_W, module.i_sc_A, module.v_oc_V, AnomalyConfig(**cfg.anomaly))
+    q = pd.concat([q, an], axis=1)
+    sevs = {"sinalizar": [], "excluir_erros": ["erro"], "excluir_erros_suspeitos": ["erro", "suspeito"]}[cfg.anomaly_policy]
+    if sevs:
+        hit = q["anom_severidade"].isin(sevs) & q["eligible"]
+        q.loc[hit, "reasons"] = "R10"
+        q.loc[hit, "eligible"] = False
+    return q
+
+
 def _write_json(path: Path, obj) -> None:
     path.write_text(json.dumps(_jsonable(obj), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
 
@@ -111,7 +125,7 @@ def run_experiment(cfg: ExperimentConfig, runs_dir: Path = RUNS_DIR, run_id: str
                              t_module_range_C=tuple(cfg.t_module_range_C),
                              require_ambient=cfg.thermal_strategy == "B_faiman",
                              voc_stc_V=module.v_oc_V, p_stc_W=module.p_stc_W)
-        q = assess_quality(field, qcfg)
+        q = quality_with_anomalies(field, qcfg, module, cfg)
         q.to_csv(rd / "input_quality.csv", index=False)
         monthly_summary(q, cfg.max_gap_min).to_csv(rd / "quality_summary.csv", index=False)
         interval_report(q).to_csv(rd / "intervals.csv", index=False)
@@ -154,6 +168,8 @@ def run_experiment(cfg: ExperimentConfig, runs_dir: Path = RUNS_DIR, run_id: str
             pred[f"status_{m}"] = outs[m].status
         for k, v in outs["M4"].extra.items():
             pred[f"M4_{k}"] = v
+        for c in ("anom_codes", "anom_severidade", "pr_inst", "isc_ratio", "transitorio"):
+            pred[c] = el[c].to_numpy()
         pred["Voc_obs_V"] = el["voc_measured_V"].to_numpy()
         pred["Isc_obs_A"] = el["isc_measured_A"].to_numpy()
         pred.to_csv(rd / "predictions.csv", index=False)
@@ -197,6 +213,8 @@ def run_experiment(cfg: ExperimentConfig, runs_dir: Path = RUNS_DIR, run_id: str
         # 10 metadados ----------------------------------------------------------------
         st.stage("metadados", "hashes, ambiente e README_RUN")
         write_metadata(rd, cfg, field_hashes, lab, stage_s, model_diag, cal_rep, q)
+        from .analysis import write_narrative
+        write_narrative(rd)
         st.state.update(estado="concluido", mensagem="experimento concluído")
         st.write()
     except Exception:
@@ -228,11 +246,11 @@ def sensitivity(cfg, q, field, module, params, pred, rd: Path) -> None:
         for r in em.itertuples():
             rows.append({"tipo": "delta_T_C", "valor": float(dt), "modelo": r.modelo, "N": r.N, "RMSE_W": r.RMSE_W,
                          "MAE_W": r.MAE_W, "MBE_W": r.MBE_W, "erro_energia_pct": r.erro_energia_pct,
-                         "nota": "ΔT afeta apenas modelos com Tcell (M2, M4)"})
+                         "NRMSE_media_pct": r.NRMSE_media_pct, "nota": "ΔT afeta apenas modelos com Tcell (M2, M4)"})
     for gth in cfg.sensitivity_g_thresholds:
-        qq = assess_quality(field, QualityConfig(g_threshold_Wm2=float(gth), g_max_Wm2=cfg.g_max_Wm2,
-                                                 t_module_range_C=tuple(cfg.t_module_range_C),
-                                                 require_ambient=cfg.thermal_strategy == "B_faiman"))
+        qq = quality_with_anomalies(field, QualityConfig(g_threshold_Wm2=float(gth), g_max_Wm2=cfg.g_max_Wm2,
+                                                         t_module_range_C=tuple(cfg.t_module_range_C),
+                                                         require_ambient=cfg.thermal_strategy == "B_faiman"), module, cfg)
         e2 = qq[qq["eligible"]].sort_values("row_id").reset_index(drop=True)
         c = _conditions(cfg, e2, module, cfg.delta_t_C)
         df = pd.DataFrame({"row_id": e2["row_id"], "timestamp": e2["timestamp"], "P_obs_W": e2["p_mpp_measured_W"]})
@@ -248,7 +266,7 @@ def sensitivity(cfg, q, field, module, params, pred, rd: Path) -> None:
         for r in em.itertuples():
             rows.append({"tipo": "limiar_G_Wm2", "valor": float(gth), "modelo": r.modelo, "N": r.N,
                          "RMSE_W": r.RMSE_W, "MAE_W": r.MAE_W, "MBE_W": r.MBE_W,
-                         "erro_energia_pct": r.erro_energia_pct,
+                         "erro_energia_pct": r.erro_energia_pct, "NRMSE_media_pct": r.NRMSE_media_pct,
                          "nota": "máscara reconstruída com o limiar; demais critérios iguais"})
     pd.DataFrame(rows).to_csv(rd / "sensitivity.csv", index=False)
 

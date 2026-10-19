@@ -35,7 +35,8 @@ def error_metrics(p: np.ndarray, o: np.ndarray, p_stc: float) -> dict:
     n = int(e.size)
     if n == 0:
         return dict(N=0, RMSE_W=np.nan, MAE_W=np.nan, MBE_W=np.nan, NRMSE_Pstc_pct=np.nan,
-                    NMAE_Pstc_pct=np.nan, NRMSE_media_pct=np.nan, NMBE_media_pct=np.nan)
+                    NMAE_Pstc_pct=np.nan, NRMSE_media_pct=np.nan, NMAE_media_pct=np.nan, NMBE_media_pct=np.nan,
+                    P_obs_media_W=np.nan)
     rmse = float(np.sqrt(np.mean(e**2)))
     mae = float(np.mean(np.abs(e)))
     mbe = float(np.mean(e))
@@ -43,7 +44,8 @@ def error_metrics(p: np.ndarray, o: np.ndarray, p_stc: float) -> dict:
     return dict(N=n, RMSE_W=rmse, MAE_W=mae, MBE_W=mbe,
                 NRMSE_Pstc_pct=100 * rmse / p_stc, NMAE_Pstc_pct=100 * mae / p_stc,
                 NRMSE_media_pct=100 * rmse / mo if mo else np.nan,
-                NMBE_media_pct=100 * mbe / mo if mo else np.nan)
+                NMAE_media_pct=100 * mae / mo if mo else np.nan,
+                NMBE_media_pct=100 * mbe / mo if mo else np.nan, P_obs_media_W=mo)
 
 
 def pair_energy_kWh(ts: pd.Series, p: np.ndarray, pairs: np.ndarray) -> float:
@@ -132,4 +134,45 @@ def binned_residuals(pred: pd.DataFrame, models=MODEL_IDS) -> pd.DataFrame:
                              "MBE_W": float(np.mean(e)), "MAE_W": float(np.mean(np.abs(e))),
                              "RMSE_W": float(np.sqrt(np.mean(e**2))),
                              "residuo_p5_W": float(np.percentile(e, 5)), "residuo_p95_W": float(np.percentile(e, 95))})
+    return pd.DataFrame(rows)
+
+
+QUALITY_SCENARIOS = [
+    ("todas", "todas as amostras elegíveis (máscara principal)"),
+    ("sem_erros", "sem anomalias físicas do tipo «erro»"),
+    ("sem_erros_suspeitos", "sem anomalias «erro» nem «suspeito»"),
+    ("estaveis", "somente condições estáveis (sem transitório rápido de G)"),
+    ("transitorios", "somente transitórios rápidos de G"),
+    ("anomalas", "somente amostras com anomalia «erro» ou «suspeito»"),
+]
+
+
+def _scenario_mask(pred: pd.DataFrame, key: str) -> np.ndarray:
+    sev = pred.get("anom_severidade", pd.Series("", index=pred.index)).fillna("").astype(str)
+    tr = pred.get("transitorio", pd.Series(False, index=pred.index)).fillna(False).astype(bool)
+    bad = sev.isin(["erro", "suspeito"]).to_numpy()
+    return {"todas": np.ones(len(pred), bool), "sem_erros": (sev != "erro").to_numpy(),
+            "sem_erros_suspeitos": ~bad, "estaveis": ~tr.to_numpy(), "transitorios": tr.to_numpy(),
+            "anomalas": bad}[key]
+
+
+def quality_sensitivity(pred: pd.DataFrame, p_stc: float, max_gap_min: float, models=MODEL_IDS) -> pd.DataFrame:
+    """Métricas por cenário de qualidade dos dados (mesma máscara para os 4 modelos)."""
+    pred = pred.sort_values("row_id").reset_index(drop=True)
+    rows = []
+    base_inter = intersection_mask(pred, models)
+    o = pred[OBS].to_numpy(float)
+    for key, desc in QUALITY_SCENARIOS:
+        mk = _scenario_mask(pred, key)
+        sub = pred[mk].reset_index(drop=True)
+        if len(sub) < 2:
+            continue
+        em = energy_metrics(sub, p_stc, max_gap_min, models)
+        for r in em.to_dict("records"):
+            m = r["modelo"]
+            e = pred[pcol(m)].to_numpy(float) - o
+            sse_tot = float(np.nansum(e[base_inter] ** 2))
+            sse_sub = float(np.nansum(e[base_inter & mk] ** 2))
+            rows.append({"cenario": key, "descricao": desc, "pct_amostras": 100 * mk.sum() / len(pred),
+                         "parcela_erro_quadratico_pct": 100 * sse_sub / sse_tot if sse_tot else np.nan, **r})
     return pd.DataFrame(rows)

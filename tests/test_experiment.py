@@ -75,18 +75,11 @@ def test_worker_11x4_sequential_isolated(tmp_path, field, supsi_module, supsi_ca
     assert (runs.max_abs_diff_ref_W == 0).all() and not runs.falha.any()
 
 
-@pytest.fixture(scope="module")
-def small_run(tmp_path_factory):
-    cfg = ExperimentConfig(months=("2019_02",), repetitions=3, scaling_sizes=(200,), bootstrap_B=300,
-                           sensitivity_delta_t=(0.0, 3.0), calibration={**ExperimentConfig().calibration, "n_starts": 2},
-                           tracemalloc_pass=False, label="teste")
-    return run_experiment(cfg, tmp_path_factory.mktemp("runs"), use_lock=True)
-
-
 def test_run_artifacts(small_run):
     for f in ["config.json", "input_quality.csv", "predictions.csv", "metrics_energy.csv", "benchmark_runs.csv",
               "benchmark_summary.csv", "statistics.csv", "metadata.json", "README_RUN.md", "calibration.json",
-              "pareto.csv", "sensitivity.csv"]:
+              "pareto.csv", "sensitivity.csv", "quality_sensitivity.csv", "anomaly_summary.csv", "narrative.json",
+              "DISCUSSAO.md"]:
         assert (small_run / f).exists(), f
     assert len(list((small_run / "figures").glob("*.svg"))) >= 8
     q = pd.read_csv(small_run / "input_quality.csv")

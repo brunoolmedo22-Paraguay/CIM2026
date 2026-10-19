@@ -35,6 +35,9 @@ def day_block_bootstrap(pred: pd.DataFrame, max_gap_min: float, B: int = 2000, s
     E = {}
     seg_o = 0.5 * (o[:-1] + o[1:]) * dt_h
     E_obs = np.zeros(D)
+    so = np.zeros(D)
+    for i in np.where(inter)[0]:
+        so[di[day[i]]] += o[i]
     for j in np.where(pairs)[0]:
         E_obs[di[day[j]]] += seg_o[j] / 1000
     for m in models:
@@ -54,6 +57,7 @@ def day_block_bootstrap(pred: pd.DataFrame, max_gap_min: float, B: int = 2000, s
     C = rng.multinomial(D, np.full(D, 1.0 / D), size=B).astype(float)   # B×D
     N = C @ n_d
     eo = C @ E_obs
+    mo = (C @ so) / N
     boot = {}
     for m in models:
         s1, s2, sa = S[m]
@@ -61,9 +65,16 @@ def day_block_bootstrap(pred: pd.DataFrame, max_gap_min: float, B: int = 2000, s
         boot[(m, "MAE_W")] = (C @ sa) / N
         boot[(m, "MBE_W")] = (C @ s1) / N
         boot[(m, "erro_energia_pct")] = 100 * (C @ E[m] - eo) / eo
+        boot[(m, "nRMSE_pct")] = 100 * boot[(m, "RMSE_W")] / mo
+        boot[(m, "nMAE_pct")] = 100 * boot[(m, "MAE_W")] / mo
+        boot[(m, "nMBE_pct")] = 100 * boot[(m, "MBE_W")] / mo
+
+    mean_obs = float(so.sum() / n_d.sum())
 
     def point(m, k):
         s1, s2, sa = S[m]
+        if k.startswith("n") and k.endswith("_pct"):
+            return 100 * point(m, {"nRMSE_pct": "RMSE_W", "nMAE_pct": "MAE_W", "nMBE_pct": "MBE_W"}[k]) / mean_obs
         if k == "RMSE_W":
             return float(np.sqrt(s2.sum() / n_d.sum()))
         if k == "MAE_W":
@@ -80,12 +91,13 @@ def day_block_bootstrap(pred: pd.DataFrame, max_gap_min: float, B: int = 2000, s
     ci = pd.DataFrame(rows)
     prow = []
     for a, b in combinations(models, 2):
-        for k in ("RMSE_W", "MAE_W"):
+        for k in ("RMSE_W", "MAE_W", "nRMSE_pct", "nMAE_pct"):
             dlt = boot[(b, k)] - boot[(a, k)]
             prow.append({"comparacao": f"{b} − {a}", "metrica": k, "diferenca": point(b, k) - point(a, k),
                          "ic95_lo": float(np.percentile(dlt, 2.5)), "ic95_hi": float(np.percentile(dlt, 97.5)),
                          "frac_boot_negativa": float(np.mean(dlt < 0)), "B": B, "dias": D,
-                         "interpretacao": "diferença < 0 ⇒ segundo modelo com menor erro nesta amostra de dias"})
+                         "unidade": "p.p." if k.endswith("_pct") else "W",
+                         "interpretacao": "diferença < 0 ⇒ primeiro modelo com menor erro nesta amostra de dias"})
     paired = pd.DataFrame(prow)
     samples = pd.DataFrame({f"{m}|{k}": v for (m, k), v in boot.items()})
     return ci, paired, samples

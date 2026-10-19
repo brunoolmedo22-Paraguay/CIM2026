@@ -18,7 +18,8 @@ from ..stats.bootstrap import day_block_bootstrap
 from ..stats.pareto import marginal_improvement, pareto_table
 from ..stats.timing import paired_time_ratios, timing_summary
 from .config import ExperimentConfig
-from .metrics import binned_residuals, energy_metrics, grouped_metrics
+from .metrics import binned_residuals, energy_metrics, grouped_metrics, quality_sensitivity
+from ..data.anomalies import AnomalyConfig, anomaly_summary, detect_anomalies
 
 
 def read_predictions(run_dir: Path) -> pd.DataFrame:
@@ -33,6 +34,18 @@ def analyze_run(run_dir: Path, write: bool = True) -> dict:
     meta_p = run_dir / "calibration.json"
     p_stc = json.loads((run_dir / "module.json").read_text(encoding="utf-8"))["p_stc_W"]
     pred = read_predictions(run_dir)
+    q = pd.read_csv(run_dir / "input_quality.csv", low_memory=False)
+    q["timestamp"] = pd.to_datetime(q["timestamp"])
+    if "anom_codes" not in q:      # execuções antigas: anomalias recalculadas das colunas medidas
+        mod = json.loads((run_dir / "module.json").read_text(encoding="utf-8"))
+        q = pd.concat([q, detect_anomalies(q, mod["p_stc_W"], mod["i_sc_A"], mod["v_oc_V"],
+                                           AnomalyConfig(**getattr(cfg, "anomaly", AnomalyConfig().to_dict())))], axis=1)
+    if "anom_codes" not in pred:
+        cols = ["anom_codes", "anom_severidade", "pr_inst", "isc_ratio", "transitorio"]
+        pred = pred.merge(q[["row_id"] + cols], on="row_id", how="left")
+    q["anom_codes"] = q["anom_codes"].fillna("")
+    pred["anom_codes"] = pred["anom_codes"].fillna("")
+    pred["anom_severidade"] = pred["anom_severidade"].fillna("")
     out: dict[str, pd.DataFrame] = {}
     out["metrics_energy"] = energy_metrics(pred, p_stc, cfg.max_gap_min)
     out["metrics_daily"] = grouped_metrics(pred, p_stc, "dia", cfg.max_gap_min)
@@ -48,10 +61,13 @@ def analyze_run(run_dir: Path, write: bool = True) -> dict:
         out["determinism"] = determinism_check(runs)
         out["pareto"], out["marginal"] = pareto_analysis(out["metrics_energy"], out["bootstrap_ci"],
                                                          out["benchmark_summary"], runs)
+    out["quality_sensitivity"] = quality_sensitivity(pred, p_stc, cfg.max_gap_min)
+    out["anomaly_summary"] = anomaly_summary(q)
     out["statistics"] = consolidate(out)
     if write:
         for k, df in out.items():
             df.to_csv(run_dir / f"{k}.csv", index=False)
+        write_narrative(run_dir, out, cfg)
     del meta_p, samples
     return out
 
@@ -115,3 +131,26 @@ def consolidate(out: dict) -> pd.DataFrame:
         rows.append({"secao": "bootstrap_pareado", "modelo": r.comparacao, "grupo": "", "metrica": r.metrica,
                      "valor": r.diferenca, "ic95_lo": r.ic95_lo, "ic95_hi": r.ic95_hi, "unidade": "W"})
     return pd.DataFrame(rows)
+
+
+def write_narrative(run_dir: Path, out: dict | None = None, cfg: ExperimentConfig | None = None) -> list[dict]:
+    """(Re)gera a discussão automática a partir dos arquivos da execução."""
+    from ..report import narrative
+    run_dir = Path(run_dir)
+    if out is None:
+        out = {}
+        for k in ("metrics_energy", "metrics_daily", "metrics_monthly", "residual_bins", "bootstrap_ci", "bootstrap_paired",
+                  "benchmark_summary", "time_ratios", "determinism", "pareto", "marginal", "sensitivity",
+                  "quality_sensitivity", "anomaly_summary"):
+            p = run_dir / f"{k}.csv"
+            if p.exists():
+                out[k] = pd.read_csv(p, float_precision="round_trip")
+    if cfg is None:
+        cfg = ExperimentConfig.from_dict(json.loads((run_dir / "config.json").read_text(encoding="utf-8")))
+    if "sensitivity" not in out and (run_dir / "sensitivity.csv").exists():
+        out["sensitivity"] = pd.read_csv(run_dir / "sensitivity.csv")
+    meta_p = run_dir / "metadata.json"
+    meta = json.loads(meta_p.read_text(encoding="utf-8")) if meta_p.exists() else {}
+    items = narrative.build(out, cfg.to_dict(), meta)
+    narrative.write(run_dir, items)
+    return items

@@ -9,12 +9,14 @@ from dataclasses import asdict, dataclass, field, replace
 import numpy as np
 
 from ..calibration.multipoint import MultipointConfig
+from ..data.anomalies import AnomalyConfig
 from ..constants import HULD_DEFAULT_SET, SANDIA_DELTA_T_DEFAULT_C
 from ..data.supsi_field import AVAILABLE_MONTHS
 from ..pvcore.models import MODEL_IDS
 
 ORDER_MODES = ("rotativa", "aleatoria")
 EXEC_MODES = ("vetorizado", "escalar")
+ANOMALY_POLICIES = ("sinalizar", "excluir_erros", "excluir_erros_suspeitos")
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,8 @@ class ExperimentConfig:
     bootstrap_B: int = 2000
     huld_set: str = HULD_DEFAULT_SET
     calibration: dict = field(default_factory=lambda: json.loads(json.dumps(MultipointConfig().to_dict())))
+    anomaly_policy: str = "sinalizar"                # | "excluir_erros" | "excluir_erros_suspeitos"
+    anomaly: dict = field(default_factory=lambda: AnomalyConfig().to_dict())
     label: str = ""
 
     def validate(self) -> None:
@@ -56,6 +60,8 @@ class ExperimentConfig:
             raise ValueError("Meses inválidos.")
         if self.g_threshold_Wm2 < 0 or self.max_gap_min <= 0:
             raise ValueError("Limiar/lacuna inválidos.")
+        if self.anomaly_policy not in ANOMALY_POLICIES:
+            raise ValueError(f"Política de anomalias inválida: {self.anomaly_policy}")
         if self.warmup_samples < 1:
             raise ValueError("Aquecimento deve usar ≥ 1 amostra.")
 
