@@ -1,0 +1,101 @@
+{
+  "months": [
+    "2019_01",
+    "2019_02",
+    "2019_03",
+    "2019_04",
+    "2019_05",
+    "2019_06"
+  ],
+  "module_id": "SUPSI_MONO_SI_REFERENCE",
+  "thermal_strategy": "A_tmod_medida",
+  "delta_t_C": 3.0,
+  "g_threshold_Wm2": 100.0,
+  "g_max_Wm2": 1500.0,
+  "max_gap_min": 7.5,
+  "t_module_range_C": [
+    -40.0,
+    90.0
+  ],
+  "repetitions": 11,
+  "order_mode": "rotativa",
+  "seed": 20261019,
+  "warmup_samples": 500,
+  "execution_mode": "vetorizado",
+  "scaling_enabled": true,
+  "scaling_sizes": [
+    250,
+    1000,
+    4000
+  ],
+  "tracemalloc_pass": true,
+  "sensitivity_enabled": true,
+  "sensitivity_delta_t": [
+    0.0,
+    2.0,
+    3.0,
+    5.0
+  ],
+  "sensitivity_g_thresholds": [
+    50.0,
+    100.0,
+    200.0
+  ],
+  "bootstrap_B": 2000,
+  "huld_set": "PVGIS_cSi_current",
+  "calibration": {
+    "n_starts": 8,
+    "seed": 20261019,
+    "ftol": 1e-10,
+    "xtol": 1e-10,
+    "gtol": 1e-10,
+    "max_nfev": 400,
+    "il_factor_bounds": [
+      0.9,
+      1.2
+    ],
+    "log10_i0_bounds": [
+      -15.0,
+      -3.0
+    ],
+    "rs_bounds": [
+      0.0001,
+      3.0
+    ],
+    "log10_rsh_bounds": [
+      1.5,
+      5.5
+    ],
+    "a_ref_bounds": [
+      0.3,
+      4.0
+    ],
+    "near_optimal_rel": 0.01
+  },
+  "anomaly_policy": "sinalizar",
+  "anomaly": {
+    "p_without_g_frac": 0.05,
+    "g_dark_Wm2": 20.0,
+    "g_without_p_Wm2": 200.0,
+    "p_floor_frac": 0.02,
+    "pr_high": 1.25,
+    "pr_low": 0.5,
+    "min_g_ratio_Wm2": 100.0,
+    "isc_band": [
+      0.8,
+      1.2
+    ],
+    "voc_band": [
+      0.5,
+      1.2
+    ],
+    "dt_mod_amb_C": [
+      -5.0,
+      45.0
+    ],
+    "t_jump_C": 10.0,
+    "g_ramp_Wm2": 250.0,
+    "stuck_n": 4
+  },
+  "label": "verificação v1.1 (padrão)"
+}

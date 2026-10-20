@@ -1,0 +1,22 @@
+[
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_potencia_dia.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_potencia_dia.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_dispersao.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_dispersao.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_residuos_faixas.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/energia_residuos_faixas.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/estatistica_rmse_diario.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/estatistica_rmse_diario.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/estatistica_bootstrap_ic95.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/estatistica_bootstrap_ic95.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/integrada_sensibilidade_deltaT.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/integrada_sensibilidade_deltaT.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_tempos.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_tempos.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_memoria.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_memoria.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_escalabilidade.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/computacional_escalabilidade.png",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/integrada_pareto.svg",
+ "/home/claude/cim26_app/runs/20261019-171936_02d45e13e8/figures/integrada_pareto.png"
+]

@@ -1,0 +1,39 @@
+{
+  "cpu_modelo": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "cpu_logicos": 1,
+  "so": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "implementacao": "CPython",
+  "threads_env": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "versao_numpy": "2.4.4",
+  "versao_scipy": "1.17.1",
+  "versao_pandas": "3.0.2",
+  "versao_streamlit": "1.66.0",
+  "versao_plotly": "7.1.0",
+  "versao_matplotlib": "3.10.8",
+  "versao_openpyxl": "3.1.5",
+  "versao_psutil": "7.2.2",
+  "cpu_fisicos": 1,
+  "ram_total_GiB": 3.9,
+  "cpu_freq_MHz": {
+    "atual": 2100.0,
+    "min": 0.0,
+    "max": 0.0
+  },
+  "cpu_temperatura": "não medida",
+  "relogio": {
+    "funcao": "time.perf_counter_ns",
+    "resolucao_s": 1e-09,
+    "monotonico": true,
+    "implementacao": "clock_gettime(CLOCK_MONOTONIC)"
+  },
+  "energia_cpu": "não medida (sem instrumento)",
+  "git_commit": "não disponível",
+  "metodo_memoria": "linux_vmhwm_reset",
+  "rss_base_MiB": 158.80078125
+}
