@@ -1,0 +1,11 @@
+# CIM26 v2 — Streamlit (Python 3.12 recomendado; 3.11–3.13 compatíveis)
+# Versões exatas da verificação: requirements-lock.txt
+streamlit>=1.66,<2
+numpy>=1.26,<3
+scipy>=1.11,<2
+pandas>=2.1,<4
+matplotlib>=3.8,<4
+plotly>=5.24,<8
+openpyxl>=3.1,<4
+psutil>=5.9,<8
+pytest>=8,<10
