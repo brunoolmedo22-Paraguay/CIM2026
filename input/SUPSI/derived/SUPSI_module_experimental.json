@@ -1,0 +1,20 @@
+{
+  "id": "SUPSI_MONO_SI_REFERENCE",
+  "manufacturer": null,
+  "commercial_model": null,
+  "technology": "mono-crystalline silicon",
+  "power_stc_measured_W": 285.68591743441357,
+  "isc_stc_A": 9.486848514934435,
+  "voc_stc_V": 39.714731230689345,
+  "vmp_stc_V": null,
+  "imp_stc_A": null,
+  "series_cell_count": null,
+  "alpha_isc_pct_per_C": 0.046,
+  "beta_voc_pct_per_C": -0.2848,
+  "gamma_pmax_pct_per_C": -0.405,
+  "source_original": "SUPSI IEC61853-1&2 workbook; raw laboratory data; see README",
+  "uncertainty": "Measured STC values and coefficients. Commercial identity unknown; Vmp, Imp, Ns unavailable; do not fabricate.",
+  "u0_W_m2K": 29.84,
+  "u1_W_s_m3K": 3.44,
+  "nmot_C": 44.04
+}
