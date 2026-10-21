@@ -295,5 +295,42 @@ def scatter_pred_obs(sc: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def power_vs_irradiance(sc: pd.DataFrame, p_stc: float) -> go.Figure:
+    """Dispersão P × Gpoa: medida (com anomalias) e previstas pelos 4 modelos, com a reta Pstc·G/1000."""
+    from plotly.subplots import make_subplots
+    lay = plotly_layout()
+    ax = lay.pop("xaxis")
+    lay.pop("yaxis")
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, horizontal_spacing=0.035,
+                        subplot_titles=("Potência medida × irradiância", "Potência prevista × irradiância"))
+    fig.update_layout(**lay, height=430)
+    tfont = ax.pop("title")["font"]
+    fig.update_xaxes(**ax, title=dict(text="Gpoa [W/m²]", font=tfont))
+    fig.update_yaxes(**ax)
+    fig.update_yaxes(title=dict(text="Potência [W]", font=tfont), row=1, col=1)
+    fig.update_annotations(font=dict(size=13, color=ink()))
+    gmax = float(np.nanmax(sc["g_poa_Wm2"])) * 1.03
+    sev = sc["anom_severidade"].fillna("").astype(str) if "anom_severidade" in sc else pd.Series("", index=sc.index)
+    bad = sev.isin(["erro", "suspeito"])
+    hov = "G %{x:.0f} W/m² · P %{y:.1f} W<extra>%{fullData.name}</extra>"
+    fig.add_scattergl(x=sc.loc[~bad, "g_poa_Wm2"], y=sc.loc[~bad, "P_obs_W"], mode="markers", name="Medida",
+                      marker=dict(size=3.5, color=ink(), opacity=0.35), hovertemplate=hov, row=1, col=1)
+    for level in ("suspeito", "erro"):
+        d = sc[sev == level]
+        if len(d):
+            fig.add_scattergl(x=d["g_poa_Wm2"], y=d["P_obs_W"], mode="markers", name=f"anomalia ({level})",
+                              marker=dict(size=7, symbol="diamond", color=SEV_COLORS[level], line=dict(color="#fff", width=0.6)),
+                              hovertemplate=hov, row=1, col=1)
+    for m in MODEL_IDS:
+        fig.add_scattergl(x=sc["g_poa_Wm2"], y=sc[f"P_{m}_W"], mode="markers", name=model_label(m),
+                          marker=dict(size=3.5, color=MODEL_COLORS[m], opacity=0.35), hovertemplate=hov, row=1, col=2)
+    for col in (1, 2):
+        fig.add_scatter(x=[0, gmax], y=[0, p_stc * gmax / 1000], mode="lines", name="Pstc·G/1000", legendgroup="ref", showlegend=col == 1,
+                        line=dict(color="#8A99A7", width=1.4, dash="dash"), hoverinfo="skip", row=1, col=col)
+    fig.update_xaxes(range=[0, gmax])
+    fig.update_yaxes(rangemode="tozero")
+    return fig
+
+
 def model_label(m: str) -> str:
     return f"{m} {MODEL_INFO[m].short}"

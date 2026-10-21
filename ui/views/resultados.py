@@ -112,20 +112,20 @@ def tab_energy(b, rid, stamp, nar):
     C.notes([f"Percentuais relativos à potência média observada na interseção ({f(r0.P_obs_media_W, 1)} W); nRMSE/Pstc usa a potência STC. "
              f"N = {int(r0.N):,} · {int(r0.pares_validos):,} pares válidos · {f(r0.horas_cobertas_h, 1)} h · energia observada {f(r0.E_obs_kWh, 1)} kWh (parcial).".replace(",", "§").replace("§", ".")])
     days = b["days"]
-    key = "res_range_sel"
-    if key not in ss or ss[key][0] not in days or ss[key][1] not in days:
-        a = "2019-05-13" if "2019-05-13" in days else days[0]
-        z = "2019-05-15" if "2019-05-15" in days else days[min(2, len(days) - 1)]
-        ss[key] = (a, z)
+    a0 = "2019-05-13" if "2019-05-13" in days else days[0]
+    z0 = "2019-05-15" if "2019-05-15" in days else days[min(2, len(days) - 1)]
     with st.container(border=True):
         st.markdown("**Potência medida, prevista e irradiância** — <span style='color:var(--cim-muted);font-size:.85rem'>a irradiância no eixo direito "
                     "ajuda a separar erro de modelo de erro de medição</span>", unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns([3, 1, 1, 1])
-        c1.select_slider("Intervalo de dias", options=days, key=key, format_func=lambda d: pd.Timestamp(d).strftime("%d/%m"))
+        # Valor inicial via `value=` e chave nunca escrita pela API de Session State: com format_func, um intervalo
+        # atribuído por st.session_state[key] não é reconciliado com o valor enviado pelo navegador (Streamlit 1.66)
+        # e o seletor voltava à posição inicial. Chave por execução: cada run tem seu próprio intervalo.
+        a, z = c1.select_slider("Intervalo de dias", options=days, value=(a0, z0), key=f"res_range_{rid}",
+                                format_func=lambda d: pd.Timestamp(d).strftime("%d/%m"))
         c2.toggle("Irradiância", key="res_ov_g")
         c3.toggle("Anomalias", key="res_ov_anom")
         c4.toggle("Tcell", key="res_ov_t")
-        a, z = ss[key]
         s = services.run_series(rid, stamp, a, z)
         lines = [(m, s[f"P_{m}_W"], MODEL_COLORS[m], 1.4) for m in MODEL_IDS]
         anom = None
@@ -155,6 +155,12 @@ def tab_energy(b, rid, stamp, nar):
     with st.container(border=True):
         st.markdown("**Previsto × medido** · amostra de 3.000 pontos; losangos = anomalias físicas de medição")
         charts.show(charts.scatter_pred_obs(b["scatter"]), "previsto_medido", key="res_sc")
+    with st.container(border=True):
+        p_stc = float(100 * me.loc["M1", "RMSE_W"] / me.loc["M1", "NRMSE_Pstc_pct"])
+        st.markdown("**Potência × irradiância** · mesma amostra de 3.000 pontos; a reta tracejada é Pstc·G/1000 (proporcionalidade ideal). "
+                    "<span style='color:var(--cim-muted);font-size:.85rem'>À esquerda a medida (losangos = anomalias), à direita os quatro modelos; "
+                    "clique na legenda para isolar séries.</span>", unsafe_allow_html=True)
+        charts.show(charts.power_vs_irradiance(b["scatter"], p_stc), "potencia_irradiancia", key="res_pg")
     C.sec("Qualidade dos dados e seu peso no erro", "o dataset também erra — e erra igual para os quatro modelos")
     C.discussion(nar, "qualidade")
     qs = b.get("quality_sensitivity")
